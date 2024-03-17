@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND noninteractive
 # Install apache and php8.1 with extensions
 RUN apt update \
 && apt install --yes ca-certificates apt-transport-https lsb-release wget curl \
-&& curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg \
+&& curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg \ 
 && sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' \
 && apt update \
 && apt install --yes --no-install-recommends \
