@@ -18,7 +18,8 @@ RUN apt-get install -y \
     curl \
     jq \
     software-properties-common \
-    wget
+    wget \
+    apt-utils
 # Add php repository
 #RUN add-apt-repository ppa:ondrej/php
 #Change Keys
@@ -54,12 +55,12 @@ RUN apt-get install -y \
 #    php8.1-bz2 \
 #    php8.1-redis
 
-RUN apt-get install -y \
-    libldap-2.4-2 \
-    libldap-common \
-    libsasl2-2 \
-    libsasl2-modules \
-    libsasl2-modules-db
+#RUN apt-get install -y \
+#    libldap-2.4-2 \
+#    libldap-common \
+#    libsasl2-2 \
+#    libsasl2-modules \
+#    libsasl2-modules-db
 
 #    && \
 #    rm -rf /var/lib/apt/lists/*
