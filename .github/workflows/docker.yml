@@ -2,6 +2,8 @@ name: Build & Publish Docker Image
 
 on:
   push:
+    branches:
+      - combined
 
 jobs:
   docker:

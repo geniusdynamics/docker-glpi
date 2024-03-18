@@ -63,8 +63,8 @@ RUN mkdir -p /var/www/html/glpi && \
     chmod -R u+rwx /var/www/html/glpi
 
 # Copy GLPI installation script
-COPY install_glpi.sh /usr/local/bin/install_glpi.sh
-RUN chmod +x /usr/local/bin/install_glpi.sh
+#COPY install_glpi.sh /usr/local/bin/install_glpi.sh
+#RUN chmod +x /usr/local/bin/install_glpi.sh
 
 # Expose ports
 EXPOSE 80 443
