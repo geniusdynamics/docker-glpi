@@ -7,15 +7,19 @@ LABEL org.opencontainers.image.authors="github@genius.ke"
 # Set non-interactive environment
 ENV DEBIAN_FRONTEND noninteractive
 
-# Update package repositories and install necessary packages
-RUN apt-get update && \
-    apt-get install -y \
+# Update package repositories
+RUN apt-get update
+
+# Install necessary packages in smaller groups
+RUN apt-get install -y \
     ca-certificates \
     apt-transport-https \
     lsb-release \
     wget \
     curl \
-    jq \
+    jq
+
+RUN apt-get install -y \
     cron \
     apache2 \
     php8.1 \
@@ -31,12 +35,15 @@ RUN apt-get update && \
     php8.1-intl \
     php8.1-zip \
     php8.1-bz2 \
-    php8.1-redis \
+    php8.1-redis
+
+RUN apt-get install -y \
     libldap-2.4-2 \
     libldap-common \
     libsasl2-2 \
     libsasl2-modules \
-    libsasl2-modules-db  \
+    libsasl2-modules-db
+
 #    && \
 #    rm -rf /var/lib/apt/lists/*
 
