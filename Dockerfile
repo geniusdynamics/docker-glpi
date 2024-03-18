@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.authors="github@genius.ke"
 ENV DEBIAN_FRONTEND noninteractive
 
 # Add php repository
-RUN add-apt-repository ppa:ondrej/php
+RUN sudo add-apt-repository ppa:ondrej/php
 #Change Keys
 RUN echo "deb https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" > /etc/apt/sources.list.d/php.list && \
     echo "deb-src https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" >> /etc/apt/sources.list.d/php.list
