@@ -26,6 +26,8 @@ RUN echo "deb https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" > /
     echo "deb-src https://ppa.launchpadcontent.net/ondrej/php/ubuntu jammy main" >> /etc/apt/sources.list.d/php.list
 
 
+# Update package repositories
+RUN apt-get update
 
 RUN apt-get install -y \
     cron \
