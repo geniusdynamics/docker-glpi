@@ -36,8 +36,9 @@ RUN apt-get update && \
     libldap-common \
     libsasl2-2 \
     libsasl2-modules \
-    libsasl2-modules-db && \
-    rm -rf /var/lib/apt/lists/*
+    libsasl2-modules-db  \
+#    && \
+#    rm -rf /var/lib/apt/lists/*
 
 # Add PHP repository and key
 #RUN wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg && \
