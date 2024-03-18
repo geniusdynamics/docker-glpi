@@ -37,19 +37,22 @@ RUN apt-get install -y \
     cron \
     apache2 \
     php8.1 \
-    php8.1-mysql \
-    php8.1-ldap \
-    php8.1-xmlrpc \
-    php8.1-imap \
-    php8.1-curl \
-    php8.1-gd \
-    php8.1-mbstring \
-    php8.1-xml \
-    php-cas \
-    php8.1-intl \
-    php8.1-zip \
-    php8.1-bz2 \
-    php8.1-redis
+    php8.1-*
+
+#php8.1 \
+#    php8.1-mysql \
+#    php8.1-ldap \
+#    php8.1-xmlrpc \
+#    php8.1-imap \
+#    php8.1-curl \
+#    php8.1-gd \
+#    php8.1-mbstring \
+#    php8.1-xml \
+#    php-cas \
+#    php8.1-intl \
+#    php8.1-zip \
+#    php8.1-bz2 \
+#    php8.1-redis
 
 RUN apt-get install -y \
     libldap-2.4-2 \
