@@ -3,6 +3,20 @@ FROM debian:12.5
 LABEL org.opencontainers.image.authors="github@genius.ke"
 ENV DEBIAN_FRONTEND noninteractive
 
+# Define build arguments
+ARG MARIADB_DB_HOST
+ARG MARIADB_DB_USER
+ARG MARIADB_DB_PASSWORD
+ARG MARIADB_DB_NAME
+ARG MARIADB_DB_PORT
+
+# Set environment variables using build arguments
+ENV MARIADB_DB_HOST=$MARIADB_DB_HOST
+ENV MARIADB_DB_USER=$MARIADB_DB_USER
+ENV MARIADB_DB_PASSWORD=$MARIADB_DB_PASSWORD
+ENV MARIADB_DB_NAME=$MARIADB_DB_NAME
+ENV MARIADB_DB_PORT=$MARIADB_DB_PORT
+
 # Update package lists and install common dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
