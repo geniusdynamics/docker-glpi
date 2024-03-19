@@ -53,7 +53,9 @@ RUN apt-get install -y \
     php8.1-zip \
     php8.1-bz2 \
     php8.1-redis
-
+    && apt-get clean \  # Clean temporary apt cache
+    && rm -rf /var/lib/apt/lists/*
+    
 # Install Apache and set up config
 RUN apt-get install -y apache2 
 
