@@ -51,27 +51,8 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
     tar -xzf /tmp/glpi-${GLPI_VERSION}.tgz -C /var/www/html/ && \
     rm /tmp/glpi-${GLPI_VERSION}.tgz
 
-# GLPI Version Handling - Default Apache configuration
-RUN echo "<VirtualHost *:80>" > /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\tDocumentRoot /var/www/html/glpi/public" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\n\t<Directory /var/www/html/glpi/public>" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\t\tRequire all granted" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\t\tRewriteEngine On" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\t\tRewriteCond %{REQUEST_FILENAME} !-f" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\t\tRewriteRule ^(.*)$ index.php [QSA,L]" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\t</Directory>" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\n\tErrorLog /var/log/apache2/error-glpi.log" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\tLogLevel warn" >> /etc/apache2/sites-available/000-default.conf \
-    && echo -e "\tCustomLog /var/log/apache2/access-glpi.log combined" >> /etc/apache2/sites-available/000-default.conf \
-    && echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf
-
-# Check GLPI version and update Apache configuration if necessary
-RUN LOCAL_GLPI_VERSION=$(cat /var/www/html/glpi/version) \
-    && LOCAL_GLPI_VERSION_NUM=${LOCAL_GLPI_VERSION//./} \
-    && TARGET_GLPI_VERSION_NUM=100014 \
-    && if [ "$LOCAL_GLPI_VERSION_NUM" -lt "$TARGET_GLPI_VERSION_NUM" ]; then \
-        sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf \
-    ; fi
+# GLPI Version Handling - Use sed to modify Apache configuration
+RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
 RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
