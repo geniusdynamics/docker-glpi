@@ -63,11 +63,6 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
     tar -xzf /tmp/glpi-${GLPI_VERSION}.tgz -C /var/www/html/ && \
     rm /tmp/glpi-${GLPI_VERSION}.tgz
 
-# Move GLPI data directory outside web root
-RUN mkdir -p /var/glpi_data && \
-    mv /var/www/html/glpi/files /var/glpi_data/ && \
-    sed -i.bak 's#\(define('"'"'GLPI_VAR_DIR'"'"',\).*#\1 "/var/glpi_data/files");#' /var/www/html/glpi/config/config.php
-
 # GLPI Version Handling - Use sed to modify Apache configuration
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
