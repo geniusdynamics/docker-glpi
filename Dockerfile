@@ -87,6 +87,16 @@ RUN chown -R www-data:www-data /var/www/html/glpi && \
 # Copy the entrypoint and db_setup scripts
 COPY entrypoint.sh /usr/local/bin/
 COPY db_setup.sh /usr/local/bin/
+
+# Set proper permissions and configurations for GLPI
+RUN if [ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]; then \
+        echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf; \
+    else \
+        echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tRequire all granted\n\t\tRewriteEngine On\n\t\tRewriteCond %{REQUEST_FILENAME} !-f\n\t\n\t\tRewriteRule ^(.*)$ index.php [QSA,L]\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf; \
+    fi && \
+    chown -R www-data:www-data /var/www/html/glpi/ && \
+    chmod -R u+rwx /var/www/html/glpi/
+
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
 
