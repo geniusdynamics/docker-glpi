@@ -98,6 +98,7 @@ RUN if [[ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]]; then \
         fi; \
     fi
 
+
 # Expose ports, start Apache
 EXPOSE 80 443
 CMD ["apachectl", "-D", "FOREGROUND"]
