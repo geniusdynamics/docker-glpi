@@ -98,7 +98,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
 
 # Enable mod_rewrite and restart Apache
-RUN a2enmod rewrite
+#RUN a2enmod rewrite
 
 #RUN service apache2 restart
 
