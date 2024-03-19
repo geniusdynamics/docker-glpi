@@ -33,10 +33,8 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get update \
     && apt-get install -y ca-certificates apt-transport-https lsb-release wget curl \
     && curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg \
-    && sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
-
-# Update package lists again after adding repository
-RUN apt-get update
+    && sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' \
+    && apt-get update
 
 # Install PHP and its extensions
 RUN apt-get install -y \
@@ -68,7 +66,6 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 # GLPI Version Handling - Use sed to modify Apache configuration
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
-
 # PHP configuration modifications
 RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "file_uploads = on ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
@@ -80,7 +77,7 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
 
-# Set proper permissions and configurations for GLPI
+# Proper permissions and configurations for GLPI
 RUN if [ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]; then \
         echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf; \
     else \
@@ -89,33 +86,28 @@ RUN if [ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]; then \
     chown -R www-data:www-data /var/www/html/glpi/ && \
     chmod -R u+rwx /var/www/html/glpi/
 
-# Copy the entrypoint and db_setup scripts
-COPY entrypoint.sh /usr/local/bin/
-COPY db_setup.sh /usr/local/bin/
-
-
-
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
 
+# Copy the entrypoint and db_setup scripts
+COPY entrypoint.sh /usr/local/bin/
+COPY db_setup.sh /usr/local/bin/
 
 # Make scripts executable
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
 
-# Start cron service
-CMD ["cron", "-f"]
-
-# Enable mod_rewrite
-RUN a2enmod rewrite
-
-# Restart Apache
-#RUN service apache2 restart
+# Enable mod_rewrite and restart Apache
+RUN a2enmod rewrite && service apache2 restart
 
 # Stop Apache gracefully
 RUN service apache2 stop
+
 # Expose ports, start Apache
 EXPOSE 80 443
+
+# Start cron service
+CMD ["cron", "-f"]
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
