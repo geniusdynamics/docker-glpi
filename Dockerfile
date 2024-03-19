@@ -103,7 +103,7 @@ RUN a2enmod rewrite
 #RUN service apache2 restart
 
 # Stop Apache gracefully
-RUN service apache2 stop
+#RUN service apache2 stop
 
 # Expose ports, start Apache
 EXPOSE 80 443
