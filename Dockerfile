@@ -70,6 +70,10 @@ RUN chown -R www-data:www-data /var/www/html/glpi && \
 
 # Database setup script
 COPY db_setup.sh /tmp/
+
+# Debugging output
+RUN ls -l /tmp  
+
 # Execute the database setup script
 RUN chmod +x /tmp/db_setup.sh \
     && /tmp/db_setup.sh
