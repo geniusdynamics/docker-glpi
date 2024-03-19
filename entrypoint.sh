@@ -5,13 +5,13 @@
 
 
 # Enable mod_rewrite
-#a2enmod rewrite
+a2enmod rewrite
 
 # Restart Apache
-#service apache2 restart
+service apache2 restart
 
 # Fix to really stop Apache
-#pkill -9 apache
+pkill -9 apache
 
 # Start Apache
 apachectl -D FOREGROUND
