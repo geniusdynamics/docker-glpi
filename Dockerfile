@@ -37,7 +37,7 @@ RUN apt-get update \
     && apt-get update
 
 # Install PHP and its extensions
-RUN apt-get install -y \
+RUN apt-get install -y --no-install-recommends \
     php8.1 \
     php8.1-common \
     php8.1-mysql \
@@ -55,7 +55,7 @@ RUN apt-get install -y \
     php8.1-redis
     && apt-get clean \  # Clean temporary apt cache
     && rm -rf /var/lib/apt/lists/*
-    
+
 # Install Apache and set up config
 RUN apt-get install -y apache2 
 
