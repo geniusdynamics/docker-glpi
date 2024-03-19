@@ -57,7 +57,7 @@ RUN apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Apache and set up config
-RUN apt-get install -y apache2 
+RUN apt-get update && apt-get install -y apache2
 
 # Download GLPI
 ARG GLPI_VERSION=10.0.14 # Default version
