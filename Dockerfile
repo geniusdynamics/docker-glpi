@@ -98,6 +98,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 # Start cron service
 CMD ["cron", "-f"]
 
+# Enable Apache rewrite module and restart Apache
+RUN a2enmod rewrite && service apache2 restart
+
+# Stop Apache gracefully
+RUN service apache2 stop
 # Expose ports, start Apache
 EXPOSE 80 443
 
