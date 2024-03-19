@@ -3,6 +3,20 @@ FROM debian:12.5
 LABEL org.opencontainers.image.authors="github@genius.ke"
 ENV DEBIAN_FRONTEND noninteractive
 
+# Define build arguments
+ARG MARIADB_DB_HOST
+ARG MARIADB_DB_USER
+ARG MARIADB_DB_PASSWORD
+ARG MARIADB_DB_NAME
+ARG MARIADB_DB_PORT
+
+# Set environment variables using build arguments
+ENV MARIADB_DB_HOST=$MARIADB_DB_HOST
+ENV MARIADB_DB_USER=$MARIADB_DB_USER
+ENV MARIADB_DB_PASSWORD=$MARIADB_DB_PASSWORD
+ENV MARIADB_DB_NAME=$MARIADB_DB_NAME
+ENV MARIADB_DB_PORT=$MARIADB_DB_PORT
+
 # Update package lists and install common dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
@@ -68,13 +82,16 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
 RUN chown -R www-data:www-data /var/www/html/glpi && \
     chmod -R u+rwx /var/www/html/glpi
 
-# Database setup script
-COPY db_setup.sh /tmp/
+# Copy the entrypoint and db_setup scripts
+COPY entrypoint.sh /usr/local/bin/
+COPY db_setup.sh /usr/local/bin/
 
-# Execute the database setup script
-RUN chmod +x /tmp/db_setup.sh \
-    && /tmp/db_setup.sh
+# Make scripts executable
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/db_setup.sh
 
 # Expose ports, start Apache
 EXPOSE 80 443
-CMD ["apachectl", "-D", "FOREGROUND"]
+
+# Set the entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
