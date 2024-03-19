@@ -52,7 +52,7 @@ RUN apt-get install -y --no-install-recommends \
     php8.1-intl \
     php8.1-zip \
     php8.1-bz2 \
-    php8.1-redis
+    php8.1-redis \
     && apt-get clean \  # Clean temporary apt cache
     && rm -rf /var/lib/apt/lists/*
 
