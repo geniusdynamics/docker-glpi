@@ -64,7 +64,10 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
     rm /tmp/glpi-${GLPI_VERSION}.tgz
 
 # GLPI Version Handling - Use sed to modify Apache configuration
-RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
+#RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
+
+# Modify the Apache virtual host configuration
+RUN echo -e "<VirtualHost *:80>\n\tServerName localhost\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tOptions Indexes FollowSymLinks\n\t\tAllowOverride All\n\t\tRequire all granted\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n\n\tRewriteEngine On\n\tRewriteCond %{REQUEST_FILENAME} !-f\n\tRewriteRule ^(.*)$ /index.php [QSA,L]\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
 RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
