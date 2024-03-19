@@ -1,4 +1,4 @@
-FROM debian:12.0
+FROM debian:12.5
 
 LABEL org.opencontainers.image.authors="github@genius.ke"
 ENV DEBIAN_FRONTEND noninteractive
