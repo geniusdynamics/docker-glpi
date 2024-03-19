@@ -18,7 +18,8 @@ ENV MARIADB_DB_NAME=$MARIADB_DB_NAME
 ENV MARIADB_DB_PORT=$MARIADB_DB_PORT
 
 # Update package lists and install common dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ca-certificates \
     apt-transport-https \
     lsb-release \
@@ -27,17 +28,16 @@ RUN apt-get update && apt-get install -y \
     jq \
     software-properties-common \
     cron \
-    mariadb-client # For database interaction
+    mariadb-client \
+    apache2 \
+    && rm -rf /var/lib/apt/lists/* && \
+    a2enmod rewrite
 
-# Add sury.org PHP repository and key
-RUN apt-get update \
-    && apt-get install -y ca-certificates apt-transport-https lsb-release wget curl \
-    && curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg \
-    && sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' \
-    && apt-get update
-
-# Install PHP and its extensions
-RUN apt-get install -y --no-install-recommends \
+# Add sury.org PHP repository and key, install PHP and its extensions
+RUN curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg && \
+    sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
     php8.1 \
     php8.1-common \
     php8.1-mysql \
@@ -53,11 +53,7 @@ RUN apt-get install -y --no-install-recommends \
     php8.1-zip \
     php8.1-bz2 \
     php8.1-redis \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Apache and set up config
-RUN apt-get update && apt-get install -y apache2
+    && rm -rf /var/lib/apt/lists/* 
 
 # Download GLPI
 ARG GLPI_VERSION=10.0.14 # Default version
@@ -67,9 +63,6 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 
 # GLPI Version Handling - Use sed to modify Apache configuration
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
-
-# Modify the Apache virtual host configuration(possible future impleentation, not working)
-#RUN echo -e "<VirtualHost *:80>\n\tServerName localhost\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tOptions Indexes FollowSymLinks\n\t\tAllowOverride All\n\t\tRequire all granted\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n\n\tRewriteEngine On\n\tRewriteCond %{REQUEST_FILENAME} !-f\n\tRewriteRule ^(.*)$ /index.php [QSA,L]\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
 RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
@@ -81,7 +74,6 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
-    
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
@@ -94,13 +86,6 @@ COPY db_setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
 
-# Enable mod_rewrite and restart Apache
-#RUN a2enmod rewrite
-
-#RUN service apache2 restart
-
-# Stop Apache gracefully
-#RUN service apache2 stop
 # Set proper permissions and configurations for GLPI
 RUN chown -R www-data:www-data /var/www/html/glpi/ && \
     find /var/www/html/glpi/ -type d -exec chmod 755 {} \; && \
