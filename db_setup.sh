@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Explicitly use bash
+set -e
 
 if [[ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]]; then 
     echo "Database restore script found (likely from Podman setup). Skipping restore logic."
