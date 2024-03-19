@@ -13,6 +13,19 @@ echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /
     # Modify Apache configuration for a public root directory
 #   sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
 #fi
+
+
+# Append ServerName directive globally in Apache configuration
+echo "ServerName $SERVER_NAME" >> /etc/apache2/apache2.conf
+
+# Enable mod_rewrite
+a2enmod rewrite
+
+# Restart Apache
+service apache2 restart
+
+# Fix to really stop Apache
+pkill -9 apache
 # Determine the hostname or IP address of the container
 CONTAINER_HOSTNAME=$(hostname)
 CONTAINER_IP=$(hostname -I | awk '{print $1}')
@@ -30,18 +43,6 @@ elif [ -n "$CONTAINER_IP" ]; then
 else
     SERVER_NAME="$DEFAULT_SERVER_NAME"
 fi
-
-# Append ServerName directive globally in Apache configuration
-echo "ServerName $SERVER_NAME" >> /etc/apache2/apache2.conf
-
-# Enable mod_rewrite
-a2enmod rewrite
-
-# Restart Apache
-service apache2 restart
-
-# Fix to really stop Apache
-pkill -9 apache
 
 # Start Apache
 apachectl -D FOREGROUND
