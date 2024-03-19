@@ -70,11 +70,9 @@ RUN chown -R www-data:www-data /var/www/html/glpi && \
 
 # Database setup script
 COPY db_setup.sh /tmp/
-RUN chmod +x /tmp/db_setup.sh
-
 # Execute the database setup script
-RUN /tmp/db_setup.sh
-
+RUN chmod +x /tmp/db_setup.sh \
+    && /tmp/db_setup.sh
 # Expose ports, start Apache
 EXPOSE 80 443
 CMD ["apachectl", "-D", "FOREGROUND"]
