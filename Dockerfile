@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:12
 
 # ... (Ondrej's PPA setup)
 
