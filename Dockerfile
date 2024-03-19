@@ -77,11 +77,6 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
 
-# Proper permissions and configurations for GLPI
-RUN echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tRequire all granted\n\t\tRewriteEngine On\n\t\tRewriteCond %{REQUEST_FILENAME} !-f\n\t\n\t\tRewriteRule ^(.*)$ index.php [QSA,L]\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf && \
-    chown -R www-data:www-data /var/www/html/glpi/ && \
-    chmod -R u+rwx /var/www/html/glpi/
-
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
 
@@ -100,7 +95,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 
 # Stop Apache gracefully
 #RUN service apache2 stop
-
+# Set proper permissions and configurations for GLPI
+RUN chown -R www-data:www-data /var/www/html/glpi/ && \
+    find /var/www/html/glpi/ -type d -exec chmod 755 {} \; && \
+    find /var/www/html/glpi/ -type f -exec chmod 644 {} \;
+    
 # Expose ports, start Apache
 EXPOSE 80 443
 
