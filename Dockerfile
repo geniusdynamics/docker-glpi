@@ -56,9 +56,30 @@ RUN LOCAL_GLPI_VERSION=$(cat /var/www/html/glpi/version) \
     && LOCAL_GLPI_VERSION_NUM=${LOCAL_GLPI_VERSION//./} \
     && TARGET_GLPI_VERSION_NUM=100014 \
     && if [ "$LOCAL_GLPI_VERSION_NUM" -lt "$TARGET_GLPI_VERSION_NUM" ]; then \
-        echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf ; \
+        echo "<VirtualHost *:80>" > /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tDocumentRoot /var/www/html/glpi" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\n\t<Directory /var/www/html/glpi>" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tAllowOverride All" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tOrder Allow,Deny" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tAllow from all" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t</Directory>" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\n\tErrorLog /var/log/apache2/error-glpi.log" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tLogLevel warn" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tCustomLog /var/log/apache2/access-glpi.log combined" >> /etc/apache2/sites-available/000-default.conf \
+        && echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf ; \
       else \
-        echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tRequire all granted\n\t\tRewriteEngine On\n\t\tRewriteCond %{REQUEST_FILENAME} !-f\n\t\n\t\tRewriteRule ^(.*)$ index.php [QSA,L]\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf ; \
+        echo "<VirtualHost *:80>" > /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tDocumentRoot /var/www/html/glpi/public" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\n\t<Directory /var/www/html/glpi/public>" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tRequire all granted" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tRewriteEngine On" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tRewriteCond %{REQUEST_FILENAME} !-f" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t\tRewriteRule ^(.*)$ index.php [QSA,L]" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\t</Directory>" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\n\tErrorLog /var/log/apache2/error-glpi.log" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tLogLevel warn" >> /etc/apache2/sites-available/000-default.conf \
+        && echo -e "\tCustomLog /var/log/apache2/access-glpi.log combined" >> /etc/apache2/sites-available/000-default.conf \
+        && echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf ; \
       fi
 
 # PHP configuration modifications
