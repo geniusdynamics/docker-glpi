@@ -14,4 +14,4 @@
 #pkill -9 apache
 
 # Start Apache
-#apachectl -D FOREGROUND
+apachectl -D FOREGROUND
