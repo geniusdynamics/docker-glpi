@@ -77,10 +77,8 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "magic_quotes_sybase = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.auto_start = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
+    echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
-
-# Set PHP directive to prevent client-side script to access cookie values.   
-RUN echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini
 
 # Set permissions and configurations for GLPI
 RUN chown -R www-data:www-data /var/www/html/glpi && \
@@ -89,10 +87,16 @@ RUN chown -R www-data:www-data /var/www/html/glpi && \
 # Copy the entrypoint and db_setup scripts
 COPY entrypoint.sh /usr/local/bin/
 COPY db_setup.sh /usr/local/bin/
+# Add cron job
+RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
+
 
 # Make scripts executable
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
+
+# Start cron service
+CMD ["cron", "-f"]
 
 # Expose ports, start Apache
 EXPOSE 80 443
