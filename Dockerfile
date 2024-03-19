@@ -112,7 +112,7 @@ CMD ["cron", "-f"]
 RUN a2enmod rewrite
 
 # Restart Apache
-RUN service apache2 restart
+#RUN service apache2 restart
 
 # Stop Apache gracefully
 RUN service apache2 stop
