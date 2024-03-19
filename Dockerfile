@@ -76,6 +76,11 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
+    
+# Move GLPI data directory outside web root
+RUN mkdir -p /var/glpi_data && \
+    mv /var/www/html/glpi/files /var/glpi_data/ && \
+    sed -i 's#^\(define('"'"'GLPI_VAR_DIR'"'"',\).*#\1 "/var/glpi_data/files");#' /var/www/html/glpi/config/config.php
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
@@ -99,7 +104,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 RUN chown -R www-data:www-data /var/www/html/glpi/ && \
     find /var/www/html/glpi/ -type d -exec chmod 755 {} \; && \
     find /var/www/html/glpi/ -type f -exec chmod 644 {} \;
-    
+
 # Expose ports, start Apache
 EXPOSE 80 443
 
