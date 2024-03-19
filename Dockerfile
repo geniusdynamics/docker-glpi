@@ -68,6 +68,7 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 # GLPI Version Handling - Use sed to modify Apache configuration
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
+
 # PHP configuration modifications
 RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "file_uploads = on ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
@@ -77,6 +78,9 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.auto_start = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
+
+# Set PHP directive to prevent client-side script to access cookie values.   
+RUN echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini
 
 # Set permissions and configurations for GLPI
 RUN chown -R www-data:www-data /var/www/html/glpi && \
