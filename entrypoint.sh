@@ -9,10 +9,10 @@ echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /
 
 # Check for conditions to modify the Apache configuration
 # For example, check if a specific file or directory exists
-if [ -d /var/www/html/glpi/public ]; then
+#if [ -d /var/www/html/glpi/public ]; then
     # Modify Apache configuration for a public root directory
-    sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
-fi
+#   sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
+#fi
 
 # Enable mod_rewrite
 a2enmod rewrite
