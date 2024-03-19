@@ -13,6 +13,26 @@ echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /
     # Modify Apache configuration for a public root directory
 #   sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
 #fi
+# Determine the hostname or IP address of the container
+CONTAINER_HOSTNAME=$(hostname)
+CONTAINER_IP=$(hostname -I | awk '{print $1}')
+
+# Set a default value for ServerName directive
+DEFAULT_SERVER_NAME="localhost"
+
+# Set ServerName directive in Apache configuration
+if [ -n "$CONTAINER_HOSTNAME" ] && [ -n "$CONTAINER_IP" ]; then
+    SERVER_NAME="$CONTAINER_HOSTNAME $CONTAINER_IP"
+elif [ -n "$CONTAINER_HOSTNAME" ]; then
+    SERVER_NAME="$CONTAINER_HOSTNAME"
+elif [ -n "$CONTAINER_IP" ]; then
+    SERVER_NAME="$CONTAINER_IP"
+else
+    SERVER_NAME="$DEFAULT_SERVER_NAME"
+fi
+
+# Append ServerName directive globally in Apache configuration
+echo "ServerName $SERVER_NAME" >> /etc/apache2/apache2.conf
 
 # Enable mod_rewrite
 a2enmod rewrite
