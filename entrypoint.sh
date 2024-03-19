@@ -14,10 +14,6 @@ echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /
 #   sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
 #fi
 
-
-# Append ServerName directive globally in Apache configuration
-echo "ServerName $SERVER_NAME" >> /etc/apache2/apache2.conf
-
 # Enable mod_rewrite
 a2enmod rewrite
 
