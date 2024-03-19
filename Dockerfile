@@ -60,7 +60,7 @@ RUN mkdir -p /var/www/html/glpi && \
 COPY glpi /var/www/html/ 
 
 # Database setup 
-RUN echo '#!/bin/sh
+RUN echo '#!/bin/bash  # Explicitly use bash
 if [[ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]]; then 
     echo "Database restore script found (likely from Podman setup). Skipping restore logic."
 else
