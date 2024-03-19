@@ -80,14 +80,6 @@ RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
 
-# Set permissions and configurations for GLPI
-RUN chown -R www-data:www-data /var/www/html/glpi && \
-    chmod -R u+rwx /var/www/html/glpi
-
-# Copy the entrypoint and db_setup scripts
-COPY entrypoint.sh /usr/local/bin/
-COPY db_setup.sh /usr/local/bin/
-
 # Set proper permissions and configurations for GLPI
 RUN if [ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]; then \
         echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf; \
@@ -96,6 +88,12 @@ RUN if [ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]; then \
     fi && \
     chown -R www-data:www-data /var/www/html/glpi/ && \
     chmod -R u+rwx /var/www/html/glpi/
+
+# Copy the entrypoint and db_setup scripts
+COPY entrypoint.sh /usr/local/bin/
+COPY db_setup.sh /usr/local/bin/
+
+
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
