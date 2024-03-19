@@ -26,23 +26,6 @@ service apache2 restart
 
 # Fix to really stop Apache
 pkill -9 apache
-# Determine the hostname or IP address of the container
-CONTAINER_HOSTNAME=$(hostname)
-CONTAINER_IP=$(hostname -I | awk '{print $1}')
-
-# Set a default value for ServerName directive
-DEFAULT_SERVER_NAME="localhost"
-
-# Set ServerName directive in Apache configuration
-if [ -n "$CONTAINER_HOSTNAME" ] && [ -n "$CONTAINER_IP" ]; then
-    SERVER_NAME="$CONTAINER_HOSTNAME $CONTAINER_IP"
-elif [ -n "$CONTAINER_HOSTNAME" ]; then
-    SERVER_NAME="$CONTAINER_HOSTNAME"
-elif [ -n "$CONTAINER_IP" ]; then
-    SERVER_NAME="$CONTAINER_IP"
-else
-    SERVER_NAME="$DEFAULT_SERVER_NAME"
-fi
 
 # Start Apache
 apachectl -D FOREGROUND
