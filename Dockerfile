@@ -57,7 +57,7 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
-RUN cat <<EOF > /etc/php/8.2/apache2/conf.d/99-glpi.ini \
+RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-glpi.ini \
     memory_limit = 64M ; \
     file_uploads = on ; \
     max_execution_time = 600 ; \
