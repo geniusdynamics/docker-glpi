@@ -73,7 +73,8 @@ RUN cat << 'EOF' > /etc/php/apache2/conf.d/99-glpi.ini \
     session.use_trans_sid = 0 ;
 EOF \
     && echo "session.cookie_httponly = on" >> /etc/php/apache2/php.ini \
-    && echo "apc.enable_cli = 1 ;" > /etc/php/mods-available/apcu.ini   
+    && echo "apc.enable_cli = 1 ;" > /etc/php/mods-available/apcu.ini
+
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
 
