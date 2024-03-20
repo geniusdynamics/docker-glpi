@@ -57,17 +57,15 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
-RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-glpi.ini \
-    memory_limit = 64M ; \
-    file_uploads = on ; \
-    max_execution_time = 600 ; \
-    register_globals = off ; \
-    magic_quotes_sybase = off ; \
-    session.auto_start = off ; \
-    session.use_trans_sid = 0 ; \
-EOF \
-    && echo "session.cookie_httponly = on" >> /etc/php/8.2/apache2/php.ini \
-    && echo "apc.enable_cli = 1 ;" > /etc/php/8.2/mods-available/apcu.ini
+RUN echo "memory_limit = 64M ;" > /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "file_uploads = on ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "max_execution_time = 600 ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "register_globals = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "magic_quotes_sybase = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "session.auto_start = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "session.use_trans_sid = 0 ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
+    echo "session.cookie_httponly = on" >> /etc/php/8.2/apache2/php.ini && \
+    echo "apc.enable_cli = 1 ;" > /etc/php/8.2/mods-available/apcu.ini
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
