@@ -71,7 +71,7 @@ RUN echo "memory_limit = 64M ;" > /etc/php/apache2/conf.d/99-glpi.ini && \
     echo "session.auto_start = off ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
     echo "session.cookie_httponly = on" >> /etc/php/apache2/php.ini && \
-    echo "apc.enable_cli = 1 ;" > /etc/php//mods-available/apcu.ini
+    echo "apc.enable_cli = 1 ;" > /etc/php/mods-available/apcu.ini
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
