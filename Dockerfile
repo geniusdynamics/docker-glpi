@@ -33,26 +33,24 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* && \
     a2enmod rewrite
 
-# Add sury.org PHP repository and key, install PHP and its extensions
-RUN curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg && \
-    sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list' && \
-    apt-get update && \
+# removed sury.org PHP repository and key, install PHP and its extensions
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    php8.1 \
-    php8.1-common \
-    php8.1-mysql \
-    php8.1-ldap \
-    php8.1-xmlrpc \
-    php8.1-imap \
-    php8.1-curl \
-    php8.1-gd \
-    php8.1-mbstring \
-    php8.1-xml \
+    php \
+    php-common \
+    php-mysql \
+    php-ldap \
+    php-xmlrpc \
+    php-imap \
+    php-curl \
+    php-gd \
+    php-mbstring \
+    php-xml \
     php-cas \
-    php8.1-intl \
-    php8.1-zip \
-    php8.1-bz2 \
-    php8.1-redis \
+    php-intl \
+    php-zip \
+    php-bz2 \
+    php-redis \
     && rm -rf /var/lib/apt/lists/* 
 
 # Download GLPI
@@ -65,15 +63,15 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
-RUN echo "memory_limit = 64M ;" > /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "file_uploads = on ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "max_execution_time = 600 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "register_globals = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "magic_quotes_sybase = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "session.auto_start = off ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "session.use_trans_sid = 0 ;" >> /etc/php/8.1/apache2/conf.d/99-glpi.ini && \
-    echo "session.cookie_httponly = on" >> /etc/php/8.1/apache2/php.ini && \
-    echo "apc.enable_cli = 1 ;" > /etc/php/8.1/mods-available/apcu.ini
+RUN echo "memory_limit = 64M ;" > /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "file_uploads = on ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "max_execution_time = 600 ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "register_globals = off ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "magic_quotes_sybase = off ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "session.auto_start = off ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "session.use_trans_sid = 0 ;" >> /etc/php/apache2/conf.d/99-glpi.ini && \
+    echo "session.cookie_httponly = on" >> /etc/php/apache2/php.ini && \
+    echo "apc.enable_cli = 1 ;" > /etc/php//mods-available/apcu.ini
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
