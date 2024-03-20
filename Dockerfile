@@ -63,7 +63,7 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
-RUN cat <<EOF > /etc/php/apache2/conf.d/99-glpi.ini \
+RUN cat << 'EOF' > /etc/php/apache2/conf.d/99-glpi.ini \
     memory_limit = 64M ;
     file_uploads = on ;
     max_execution_time = 600 ;
@@ -73,8 +73,7 @@ RUN cat <<EOF > /etc/php/apache2/conf.d/99-glpi.ini \
     session.use_trans_sid = 0 ;
 EOF \
     && echo "session.cookie_httponly = on" >> /etc/php/apache2/php.ini \
-    && echo "apc.enable_cli = 1 ;" > /etc/php/mods-available/apcu.ini
-   
+    && echo "apc.enable_cli = 1 ;" > /etc/php/mods-available/apcu.ini   
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
 
