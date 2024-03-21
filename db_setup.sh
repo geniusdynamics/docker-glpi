@@ -2,7 +2,8 @@
 
 # Explicitly use bash
 set -e
-
+chown -R www-data:www-data /var/www/html/glpi/
+chmod -R u+rwx /var/www/html/glpi/
 # Check if a database restore script exists
 if [[ -f /docker-entrypoint-initdb.d/zz_glpi_restore.sh ]]; then 
     echo "Database restore script found (likely from Podman setup). Skipping restore logic."
