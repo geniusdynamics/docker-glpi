@@ -48,7 +48,8 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Download GLPI
-ARG GLPI_VERSION=10.0.14 # Default version
+# Default version
+ARG GLPI_VERSION=10.0.14
 RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz && \
     tar -xzf /tmp/glpi-${GLPI_VERSION}.tgz -C /var/www/html/ && \
     rm /tmp/glpi-${GLPI_VERSION}.tgz
@@ -57,15 +58,17 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
 RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
-RUN echo "memory_limit = 64M ;" > /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "file_uploads = on ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "max_execution_time = 600 ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "register_globals = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "magic_quotes_sybase = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "session.auto_start = off ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "session.use_trans_sid = 0 ;" >> /etc/php/8.2/apache2/conf.d/99-glpi.ini && \
-    echo "session.cookie_httponly = on" >> /etc/php/8.2/apache2/php.ini && \
-    echo "apc.enable_cli = 1 ;" > /etc/php/8.2/mods-available/apcu.ini
+RUN PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;") && \
+    echo "memory_limit = 64M ;" > /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "file_uploads = on ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "max_execution_time = 600 ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "register_globals = off ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "magic_quotes_sybase = off ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "session.auto_start = off ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "session.use_trans_sid = 0 ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
+    echo "session.cookie_httponly = on" >> /etc/php/${PHP_VERSION}/php.ini && \
+    echo "apc.enable_cli = 1 ;" > /etc/php/${PHP_VERSION}/mods-available/apcu.ini
+
 
 # Add cron job
 RUN echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" > /etc/cron.d/glpi
@@ -77,3 +80,5 @@ COPY db_setup.sh /usr/local/bin/
 # Make scripts executable
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
+# Set the entrypoint script to run when the Docker container is run
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
