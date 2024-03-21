@@ -80,5 +80,8 @@ COPY db_setup.sh /usr/local/bin/
 # Make scripts executable
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/db_setup.sh
+
+RUN chown -R www-data:www-data /var/www/html/glpi/
+RUN chmod -R u+rwx /var/www/html/glpi/
 # Set the entrypoint script to run when the Docker container is run
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
