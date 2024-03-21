@@ -66,7 +66,7 @@ RUN PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;") && \
     echo "magic_quotes_sybase = off ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
     echo "session.auto_start = off ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
     echo "session.use_trans_sid = 0 ;" >> /etc/php/${PHP_VERSION}/apache2/conf.d/99-glpi.ini && \
-    echo "session.cookie_httponly = on" >> /etc/php/${PHP_VERSION}/php.ini && \
+    echo "session.cookie_httponly = 1" >> /etc/php/${PHP_VERSION}/php.ini && \
     echo "apc.enable_cli = 1 ;" > /etc/php/${PHP_VERSION}/mods-available/apcu.ini
 
 
