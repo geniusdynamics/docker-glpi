@@ -33,3 +33,6 @@ else
               --db-password="${MARIADB_DB_PASSWORD}" 
     fi
 fi
+
+/usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
+/usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
