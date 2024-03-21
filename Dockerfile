@@ -54,8 +54,10 @@ RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/
     tar -xzf /tmp/glpi-${GLPI_VERSION}.tgz -C /var/www/html/ && \
     rm /tmp/glpi-${GLPI_VERSION}.tgz
 
+## GLPI Version Handling - Use sed to modify Apache configuration
+#RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
 # GLPI Version Handling - Use sed to modify Apache configuration
-RUN sed -i 's#/var/www/html/glpi/public#/var/www/html/glpi#g' /etc/apache2/sites-available/000-default.conf
+RUN sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
 
 # PHP configuration modifications
 RUN PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;") && \
