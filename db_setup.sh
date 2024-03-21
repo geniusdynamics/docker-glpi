@@ -20,6 +20,9 @@ else
                       --db-name="${MARIADB_DB_NAME}" \
                       --db-user="${MARIADB_DB_USER}" \
                       --db-password="${MARIADB_DB_PASSWORD}"
+
+          /usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
+          /usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
     else
         echo "No database backup found. Performing clean install..."
         /usr/bin/php /var/www/html/glpi/bin/console glpi:database:install \
@@ -30,9 +33,10 @@ else
               --db-port="${MARIADB_DB_PORT}" \
               --db-name="${MARIADB_DB_NAME}" \
               --db-user="${MARIADB_DB_USER}" \
-              --db-password="${MARIADB_DB_PASSWORD}" 
+              --db-password="${MARIADB_DB_PASSWORD}"
+
+        /usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
+        /usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
     fi
 fi
 
-/usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
-/usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
