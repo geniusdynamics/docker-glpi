@@ -37,6 +37,7 @@ else
 
         /usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
         /usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
+        rm -f /var/www/html/glpi/install/install.php
     fi
 fi
 
