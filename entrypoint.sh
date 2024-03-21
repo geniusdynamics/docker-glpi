@@ -3,6 +3,12 @@
 # Execute the database setup script
 /usr/local/bin/db_setup.sh
 
+# Get the IP address of the machine
+IP_ADDRESS=$(hostname -I | awk '{print $1}')
+
+# Set ServerName directive in Apache configuration
+echo "ServerName $IP_ADDRESS" >> /etc/apache2/apache2.conf
+
 
 # Set default Apache configuration
 echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
