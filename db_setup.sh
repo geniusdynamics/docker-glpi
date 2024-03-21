@@ -10,7 +10,8 @@ else
     # Check if the database exists
     if mysql --host="${MARIADB_DB_HOST}" --user="${MARIADB_DB_USER}" --password="${MARIADB_DB_PASSWORD}" --execute="SHOW DATABASES LIKE '${MARIADB_DB_NAME}';" | grep -q "${MARIADB_DB_NAME}" ; then 
         echo "Database backup found on external database. Restoring..."
-        mysqldump --host="${MARIADB_DB_HOST}" --user="${MARIADB_DB_USER}" --password="${MARIADB_DB_PASSWORD}" "${MARIADB_DB_NAME}" | mysql --host=localhost --user="${MARIADB_DB_USER}" --password="${MARIADB_DB_PASSWORD}" "${MARIADB_DB_NAME}" 
+        mysqldump --host="${MARIADB_DB_HOST}" --user="${MARIADB_DB_USER}" --password="${MARIADB_DB_PASSWORD}" "${MARIADB_DB_NAME}" | mysql --host=localhost --user="${MARIADB_DB_USER}" --password="${MARIADB_DB_PASSWORD}" "${MARIADB_DB_NAME}"
+        usr/bin/php /var/www/html/glpi/bin/console  db:update
     else
         echo "No database backup found. Performing clean install..."
         /usr/bin/php /var/www/html/glpi/bin/console glpi:database:install \
