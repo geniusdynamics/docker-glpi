@@ -13,14 +13,9 @@ echo "ServerName $IP_ADDRESS" >> /etc/apache2/apache2.conf
 # Set default Apache configuration
 #echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
 echo -e "<VirtualHost *:80>
-    DocumentRoot /var/www/html/glpi
+    DocumentRoot /var/www/html/glpi/public
 
-    <Directory /var/www/html/glpi>
-        AllowOverride All
-        Order Allow,Deny
-        Allow from all
-    </Directory>
-    <Directory /var/www/html/glpi>
+    <Directory /var/www/html/glpi/public>
         Require all granted
 
         RewriteEngine On
@@ -45,6 +40,11 @@ echo -e "<VirtualHost *:80>
 #   sed -i 's#/var/www/html/glpi#/var/www/html/glpi/public#g' /etc/apache2/sites-available/000-default.conf
 #fi
 
+# <Directory /var/www/html/glpi>
+#        AllowOverride All
+#        Order Allow,Deny
+#        Allow from all
+#    </Directory>
 # Enable mod_rewrite
 a2enmod rewrite
 
