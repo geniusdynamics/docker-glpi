@@ -20,7 +20,7 @@ echo -e "<VirtualHost *:80>
         Order Allow,Deny
         Allow from all
     </Directory>
-    <Directory /var/www/html/glpi/public>
+    <Directory /var/www/html/glpi>
         Require all granted
 
         RewriteEngine On
