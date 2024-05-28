@@ -49,7 +49,7 @@ RUN apt-get update && \
 
 # Download GLPI
 # Default version
-ARG GLPI_VERSION=10.0.14
+ARG GLPI_VERSION=10.0.15
 RUN wget -qO /tmp/glpi-${GLPI_VERSION}.tgz https://github.com/glpi-project/glpi/releases/download/${GLPI_VERSION}/glpi-${GLPI_VERSION}.tgz && \
     tar -xzf /tmp/glpi-${GLPI_VERSION}.tgz -C /var/www/html/ && \
     rm /tmp/glpi-${GLPI_VERSION}.tgz
