@@ -1,33 +1,146 @@
-name: Build & Publish Docker Image
+name: AutoBuild GLPI Image
 
 on:
-  release:
-    types: [published] # Only run when a release is published
+  schedule:
+    - cron: "0 3 * * *" # Daily at 3 AM UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
-  docker:
+  build-and-push:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    env:
+      DOCKER_HUB_USERNAME_SET: ${{ secrets.DOCKER_HUB_USERNAME != '' }}
+      DOCKER_HUB_ACCESS_TOKEN_SET: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN != '' }}
+      GHCR_PAT_IS_SET: ${{ secrets.GHCR_PAT != '' }}
 
-      - name: Extract tag name
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Fetch Latest GLPI Release (including prereleases/RCs)
+        id: get_glpi_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          API_URL="https://api.github.com/repos/glpi-project/glpi/releases"
+          HEADERS=(-H "Accept: application/vnd.github+json" \
+                   -H "Authorization: Bearer $GH_TOKEN" \
+                   -H "X-GitHub-Api-Version: 2022-11-28")
+
+          # Get the most recent release (even prereleases)
+          LATEST_RELEASE=$(curl -sL "${HEADERS[@]}" "$API_URL" | jq -r '.[0]')
+
+          TAG=$(echo "$LATEST_RELEASE" | jq -r .tag_name)
+          NOTES=$(echo "$LATEST_RELEASE" | jq -r .body)
+          IS_PRERELEASE=$(echo "$LATEST_RELEASE" | jq -r .prerelease)
+
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "Error: Could not determine latest GLPI release"
+            exit 1
+          fi
+
+          IMAGE_TAG_VERSION="$(echo "$TAG" | sed 's/^v//')" # drop leading v
+          MAJOR_TAG="$(echo "$IMAGE_TAG_VERSION" | cut -d. -f1)"
+
+          echo "GLPI_VERSION_TAG=$TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG_VERSION=$IMAGE_TAG_VERSION" >> $GITHUB_ENV
+          echo "MAJOR_TAG=$MAJOR_TAG" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
+
+          echo "$NOTES" > release_notes.md
+
+      - name: Check if release already exists in this repo
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ env.GLPI_VERSION_TAG }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_ENV
+          else
+            echo "exists=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create GitHub Release
+        if: env.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ env.IS_PRERELEASE }}" = "true" ]; then
+            echo "Creating prerelease for tag ${{ env.GLPI_VERSION_TAG }}"
+            gh release create "${{ env.GLPI_VERSION_TAG }}" \
+              --title "GLPI ${{ env.GLPI_VERSION_TAG }}" \
+              --notes-file release_notes.md \
+              --prerelease
+          else
+            echo "Creating stable release for tag ${{ env.GLPI_VERSION_TAG }}"
+            gh release create "${{ env.GLPI_VERSION_TAG }}" \
+              --title "GLPI ${{ env.GLPI_VERSION_TAG }}" \
+              --notes-file release_notes.md
+          fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
+      - name: Log in to Docker Hub
+        if: env.DOCKER_HUB_USERNAME_SET == 'true' && env.DOCKER_HUB_ACCESS_TOKEN_SET == 'true'
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
+      - name: Log in to GitHub Container Registry
+        if: env.GHCR_PAT_IS_SET == 'true'
+        uses: docker/login-action@v3
         with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Prepare Docker Tags
+        id: prep_tags
+        run: |
+          TAG=${{ env.IMAGE_TAG_VERSION }}
+          MAJOR=${{ env.MAJOR_TAG }}
+          IMAGE_DH=geniusdynamics/glpi
+          IMAGE_GH=ghcr.io/${{ github.repository_owner }}/glpi
+
+          TAGS=""
+
+          if [[ "$TAG" == *"rc"* ]]; then
+            # RC build tags
+            if [ "${{ env.DOCKER_HUB_USERNAME_SET }}" = "true" ] && [ "${{ env.DOCKER_HUB_ACCESS_TOKEN_SET }}" = "true" ]; then
+              TAGS="$TAGS,$IMAGE_DH:$TAG,$IMAGE_DH:${MAJOR}-rc,$IMAGE_DH:rc"
+            fi
+            if [ "${{ env.GHCR_PAT_IS_SET }}" = "true" ]; then
+              TAGS="$TAGS,$IMAGE_GH:$TAG,$IMAGE_GH:${MAJOR}-rc,$IMAGE_GH:rc"
+            fi
+          else
+            # Stable build tags
+            if [ "${{ env.DOCKER_HUB_USERNAME_SET }}" = "true" ] && [ "${{ env.DOCKER_HUB_ACCESS_TOKEN_SET }}" = "true" ]; then
+              TAGS="$TAGS,$IMAGE_DH:$TAG,$IMAGE_DH:$MAJOR,$IMAGE_DH:latest"
+            fi
+            if [ "${{ env.GHCR_PAT_IS_SET }}" = "true" ]; then
+              TAGS="$TAGS,$IMAGE_GH:$TAG,$IMAGE_GH:$MAJOR,$IMAGE_GH:latest"
+            fi
+          fi
+
+          TAGS=$(echo "$TAGS" | sed 's/^,//')
+          echo "FINAL_TAGS=$TAGS" >> $GITHUB_ENV
+
+      - name: Build and Push Image
+        if: env.FINAL_TAGS != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
           push: true
-          tags: |
-            geniusdynamics/glpi:${{ env.TAG }}
-            geniusdynamics/glpi:latest
+          tags: ${{ env.FINAL_TAGS }}
+          platforms: linux/amd64
+
+      - name: Build Summary
+        run: |
+          echo "✔️ Build completed for GLPI ${{ env.GLPI_VERSION_TAG }}"
+          echo "Tags: ${{ env.FINAL_TAGS }}"
