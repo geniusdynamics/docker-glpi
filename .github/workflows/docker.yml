@@ -28,12 +28,11 @@ jobs:
           TAGS=$(echo "$RELEASES" | jq -r '.[0:10] | .[].tag_name')
 
           if [ -z "$TAGS" ]; then
-            echo "No releases found from GLPI."
             echo "tags=[]" >> $GITHUB_OUTPUT
           else
             echo "Found GLPI releases (last 10):"
             echo "$TAGS"
-            TAGS_JSON=$(echo "$TAGS" | jq -R . | jq -s .)
+            TAGS_JSON=$(echo "$TAGS" | jq -R . | jq -s . | jq -c .) # compact JSON array
             echo "tags=$TAGS_JSON" >> $GITHUB_OUTPUT
           fi
 
