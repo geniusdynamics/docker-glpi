@@ -7,6 +7,10 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: write # Required for creating releases and fetching content
+  packages: write # Required for pushing to GitHub Container Registry
+
 jobs:
   fetch-tags:
     runs-on: ubuntu-latest
@@ -22,32 +26,42 @@ jobs:
           HEADERS=(-H "Accept: application/vnd.github+json" \
                    -H "Authorization: Bearer $GH_TOKEN")
 
-          RELEASES=$(curl -sL "${HEADERS[@]}" "$API_URL")
+          # Fetch releases, ensure curl exits with 0 and jq processes correctly
+          RELEASES=$(curl -sL "${HEADERS[@]}" "$API_URL" | jq -c '.')
+          if [ $? -ne 0 ]; then
+            echo "Error fetching releases from GitHub API."
+            exit 1
+          fi
 
-          # Take the latest 10 tags (includes prereleases)
-          TAGS=$(echo "$RELEASES" | jq -r '.[0:10] | .[].tag_name')
+          # Extract and filter the last 10 tags
+          # Ensure tags are unique and valid, then convert to a JSON array
+          TAGS=$(echo "$RELEASES" | jq -r '.[0:10] | .[]?.tag_name | select(. != null)' | sort -rV | uniq)
 
           if [ -z "$TAGS" ]; then
+            echo "No GLPI tags found or processed."
             echo "tags=[]" >> $GITHUB_OUTPUT
           else
             echo "Found GLPI releases (last 10):"
             echo "$TAGS"
-            TAGS_JSON=$(echo "$TAGS" | jq -R . | jq -s . | jq -c .) # compact JSON array
+            # Convert newline-separated tags to a proper JSON array for `fromJson`
+            TAGS_JSON=$(echo "$TAGS" | jq -R . | jq -s .)
             echo "tags=$TAGS_JSON" >> $GITHUB_OUTPUT
           fi
 
   build:
     needs: fetch-tags
+    # Only run if tags were successfully fetched and the array is not empty
     if: needs.fetch-tags.outputs.tags != '[]'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false # Allow other matrix jobs to complete even if one fails
       matrix:
         tag: ${{ fromJson(needs.fetch-tags.outputs.tags) }}
 
     env:
+      # Use `github.repository_owner` directly for GHCR, no need for separate secret checks if you use GITHUB_TOKEN or a PAT
       DOCKER_HUB_USERNAME_SET: ${{ secrets.DOCKER_HUB_USERNAME != '' }}
       DOCKER_HUB_ACCESS_TOKEN_SET: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN != '' }}
-      GHCR_PAT_IS_SET: ${{ secrets.GHCR_PAT != '' }}
 
     steps:
       - name: Checkout Repository
@@ -62,23 +76,35 @@ jobs:
           HEADERS=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN")
 
           DATA=$(curl -sL "${HEADERS[@]}" "$API_URL")
+          if [ $? -ne 0 ] || [ -z "$DATA" ]; then
+            echo "Error fetching release info for tag ${{ matrix.tag }}."
+            exit 1
+          fi
 
           NOTES=$(echo "$DATA" | jq -r .body)
           IS_PRERELEASE=$(echo "$DATA" | jq -r .prerelease)
 
-          IMAGE_TAG_VERSION="$(echo "${{ matrix.tag }}" | sed 's/^v//')" # drop leading v
+          # Use sed for robust version extraction
+          IMAGE_TAG_VERSION="$(echo "${{ matrix.tag }}" | sed -E 's/^v//; s/\.0$//')" # drop leading v, and trailing .0 if it's a major version (e.g. 10.0 -> 10)
           MAJOR_TAG="$(echo "$IMAGE_TAG_VERSION" | cut -d. -f1)"
 
           echo "IMAGE_TAG_VERSION=$IMAGE_TAG_VERSION" >> $GITHUB_ENV
           echo "MAJOR_TAG=$MAJOR_TAG" >> $GITHUB_ENV
           echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
 
-          echo "$NOTES" > release_notes.md
+          # Create release_notes.md, ensuring content exists
+          if [ -n "$NOTES" ]; then
+            echo "$NOTES" > release_notes.md
+          else
+            echo "No release notes found for ${{ matrix.tag }}" > release_notes.md
+          fi
 
       - name: Check if release already exists in this repo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # The `gh` CLI tool requires the `contents: write` permission for listing releases
+          # and also relies on `GITHUB_TOKEN` being available.
           if gh release view "${{ matrix.tag }}" >/dev/null 2>&1; then
             echo "Release ${{ matrix.tag }} already exists, skipping build."
             echo "skip_build=true" >> $GITHUB_ENV
@@ -91,12 +117,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Ensure release_notes.md exists before trying to use it
+          if [ ! -f release_notes.md ]; then
+            echo "No release notes file found, creating a basic one."
+            echo "GLPI ${{ matrix.tag }}" > release_notes.md
+          fi
+
           if [ "${{ env.IS_PRERELEASE }}" = "true" ]; then
+            echo "Creating pre-release for ${{ matrix.tag }}"
             gh release create "${{ matrix.tag }}" \
               --title "GLPI ${{ matrix.tag }}" \
               --notes-file release_notes.md \
               --prerelease
           else
+            echo "Creating stable release for ${{ matrix.tag }}"
             gh release create "${{ matrix.tag }}" \
               --title "GLPI ${{ matrix.tag }}" \
               --notes-file release_notes.md
@@ -114,11 +148,13 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Log in to GitHub Container Registry
+        # You can often use GITHUB_TOKEN with ${{ github.actor }} for GHCR
+        # If using a separate PAT, ensure it has `write:packages` scope.
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ github.actor }} # Uses the workflow actor for GHCR
+          password: ${{ secrets.GITHUB_TOKEN }} # GITHUB_TOKEN has `packages: write` permission
 
       - name: Prepare Docker Tags
         if: env.skip_build == 'false'
@@ -129,20 +165,32 @@ jobs:
           IMAGE_DH=geniusdynamics/glpi
           IMAGE_GH=ghcr.io/${{ github.repository_owner }}/glpi
 
-          TAGS=""
+          # Initialize with an empty string, then append tags.
+          # docker/build-push-action expects comma-separated tags without leading/trailing commas.
+          declare -a DOCKER_TAGS=()
 
-          if [[ "$TAG" == *"rc"* ]]; then
+          # Add base tags for both registries
+          DOCKER_TAGS+=("$IMAGE_DH:$TAG")
+          DOCKER_TAGS+=("$IMAGE_GH:$TAG")
+
+          if [[ "$TAG" == *"rc"* || "${{ env.IS_PRERELEASE }}" == "true" ]]; then
             # Pre-release RC tagging
-            TAGS="$TAGS,$IMAGE_DH:$TAG,$IMAGE_DH:${MAJOR}-rc,$IMAGE_DH:rc"
-            TAGS="$TAGS,$IMAGE_GH:$TAG,$IMAGE_GH:${MAJOR}-rc,$IMAGE_GH:rc"
+            DOCKER_TAGS+=("$IMAGE_DH:${MAJOR}-rc")
+            DOCKER_TAGS+=("$IMAGE_DH:rc")
+            DOCKER_TAGS+=("$IMAGE_GH:${MAJOR}-rc")
+            DOCKER_TAGS+=("$IMAGE_GH:rc")
           else
             # Stable release tagging
-            TAGS="$TAGS,$IMAGE_DH:$TAG,$IMAGE_DH:$MAJOR,$IMAGE_DH:latest"
-            TAGS="$TAGS,$IMAGE_GH:$TAG,$IMAGE_GH:$MAJOR,$IMAGE_GH:latest"
+            DOCKER_TAGS+=("$IMAGE_DH:$MAJOR")
+            DOCKER_TAGS+=("$IMAGE_DH:latest")
+            DOCKER_TAGS+=("$IMAGE_GH:$MAJOR")
+            DOCKER_TAGS+=("$IMAGE_GH:latest")
           fi
 
-          TAGS=$(echo "$TAGS" | sed 's/^,//')
-          echo "FINAL_TAGS=$TAGS" >> $GITHUB_ENV
+          # Join array elements with a comma
+          FINAL_TAGS=$(IFS=,; echo "${DOCKER_TAGS[*]}")
+          echo "Generated Docker Tags: $FINAL_TAGS"
+          echo "FINAL_TAGS=$FINAL_TAGS" >> $GITHUB_ENV
 
       - name: Build and Push Image
         if: env.skip_build == 'false' && env.FINAL_TAGS != ''
@@ -152,10 +200,10 @@ jobs:
           file: Dockerfile
           push: true
           tags: ${{ env.FINAL_TAGS }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64 # Consider multi-arch builds if your Dockerfile supports it
 
       - name: Build Summary
         if: env.skip_build == 'false'
         run: |
-          echo "✔️ Built GLPI ${{ matrix.tag }}"
+          echo "✔️ Successfully built and pushed GLPI ${{ matrix.tag }}"
           echo "Tags: ${{ env.FINAL_TAGS }}"
