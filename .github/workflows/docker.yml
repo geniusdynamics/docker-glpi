@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
-permissions:
-  contents: write # Required for creating releases and fetching content
-  packages: write
+
 jobs:
   fetch-tags:
     runs-on: ubuntu-latest
