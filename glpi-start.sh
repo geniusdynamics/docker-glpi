@@ -76,12 +76,48 @@ TARGET_GLPI_VERSION_NUM=${TARGET_GLPI_VERSION//./}
 TARGET_GLPI_MAJOR_VERSION=$(echo $TARGET_GLPI_VERSION | cut -d. -f1)
 
 # Compare the numeric value of the version number to the target number
+
 if [[ $LOCAL_GLPI_VERSION_NUM -lt $TARGET_GLPI_VERSION_NUM || $LOCAL_GLPI_MAJOR_VERSION -lt $TARGET_GLPI_MAJOR_VERSION ]]; then
-	echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi\n\n\t<Directory /var/www/html/glpi>\n\t\tAllowOverride All\n\t\tOrder Allow,Deny\n\t\tAllow from all\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" >/etc/apache2/sites-available/000-default.conf
+	# Config for GLPI < 10
+	echo -e "<VirtualHost *:80>
+    DocumentRoot /var/www/html/glpi
+
+    <Directory /var/www/html/glpi>
+        AllowOverride All
+        Order Allow,Deny
+        Allow from all
+    </Directory>
+
+    ErrorLog /var/log/apache2/error-glpi.log
+    LogLevel warn
+    CustomLog /var/log/apache2/access-glpi.log combined
+</VirtualHost>" >/etc/apache2/sites-available/000-default.conf
 else
+	# Config for GLPI >= 10
 	set +H
-	echo -e "<VirtualHost *:80>\n\tDocumentRoot /var/www/html/glpi/public\n\n\t<Directory /var/www/html/glpi/public>\n\t\tRequire all granted\n\t\tRewriteEngine On\n\t\tRewriteCond %{REQUEST_FILENAME} !-f\n\t\n\t\tRewriteRule ^(.*)$ index.php [QSA,L]\n\t</Directory>\n\n\tErrorLog /var/log/apache2/error-glpi.log\n\tLogLevel warn\n\tCustomLog /var/log/apache2/access-glpi.log combined\n</VirtualHost>" >/etc/apache2/sites-available/000-default.conf
+	echo -e "<VirtualHost *:80>
+    DocumentRoot /var/www/glpi/public
+
+    <Directory /var/www/glpi/public>
+        Require all granted
+
+        RewriteEngine On
+
+        # Ensure authorization headers are passed to PHP.
+        RewriteCond %{HTTP:Authorization} ^(.+)$
+        RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+        # Redirect all requests to GLPI router, unless file exists.
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^(.*)$ index.php [QSA,L]
+    </Directory>
+
+    ErrorLog /var/log/apache2/error-glpi.log
+    LogLevel warn
+    CustomLog /var/log/apache2/access-glpi.log combined
+</VirtualHost>" >/etc/apache2/sites-available/000-default.conf
 fi
+
 chown -R www-data:www-data /var/www/html/glpi/
 chmod -R u+rwx /var/www/html/glpi/
 
