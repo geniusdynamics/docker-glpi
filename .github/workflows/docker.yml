@@ -29,5 +29,6 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/glpi:latest
+            geniusdynamics/glpi:latest
+            geniusdynamics/glpi:master
           platforms: linux/amd64
