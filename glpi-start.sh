@@ -98,7 +98,7 @@ else
 	echo -e "<VirtualHost *:80>
     DocumentRoot /var/www/html/glpi/public
 
-    <Directory /var/www/glpi/html/public>
+    <Directory /var/www/html/glpi/public>
         Require all granted
 
         RewriteEngine On
@@ -129,7 +129,8 @@ chmod -R u+rwx /var/www/html/glpi/
 	--db-port=${MARIADB_DB_PORT} \
 	--db-name=${MARIADB_DB_NAME} \
 	--db-user=${MARIADB_DB_USER} \
-	--db-password=${MARIADB_DB_PASSWORD}
+	--db-password=${MARIADB_DB_PASSWORD} \ 
+--allow-superuser
 
 # Enable time zones
 /usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
