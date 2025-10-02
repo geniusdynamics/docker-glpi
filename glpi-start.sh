@@ -96,9 +96,9 @@ else
 	# Config for GLPI >= 10
 	set +H
 	echo -e "<VirtualHost *:80>
-    DocumentRoot /var/www/glpi/public
+    DocumentRoot /var/www/html/glpi/public
 
-    <Directory /var/www/glpi/public>
+    <Directory /var/www/glpi/html/public>
         Require all granted
 
         RewriteEngine On
