@@ -129,12 +129,12 @@ chmod -R u+rwx /var/www/html/glpi/
 	--db-port=${MARIADB_DB_PORT} \
 	--db-name=${MARIADB_DB_NAME} \
 	--db-user=${MARIADB_DB_USER} \
-	--db-password=${MARIADB_DB_PASSWORD} \ 
---allow-superuser
+	--db-password=${MARIADB_DB_PASSWORD} \
+	--allow-superuser
 
 # Enable time zones
-/usr/bin/php /var/www/html/glpi/bin/console migration:timestamps
-/usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones
+/usr/bin/php /var/www/html/glpi/bin/console migration:timestamps --allow-superuser
+/usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones --allow-superuser
 #Add scheduled task by cron and enable
 echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" >/etc/cron.d/glpi
 #Start cron service
