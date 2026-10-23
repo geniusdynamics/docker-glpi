@@ -1,35 +1,25 @@
 #!/bin/bash
-LOGS="install_glpi.log"
-cat <<EOF >$LOGS
+#
+# Container entrypoint: deploys the GLPI release shipped in the image into the
+# volume /var/www/html/glpi, installs or updates the database and starts
+# Apache in the foreground.
+#
+# Environment: MARIADB_DB_HOST, MARIADB_DB_PORT, MARIADB_DB_NAME,
+# MARIADB_DB_USER, MARIADB_DB_PASSWORD (first installation only), TIMEZONE.
+# VERSION_GLPI is ignored: the GLPI version is the one bundled in the image.
 
-====================================================
-## VARIAVEIS
+set -e
 
-====================================================
-EOF
+FOLDER_SRC=/usr/src/glpi
+FOLDER_GLPI=/var/www/html/glpi
+# Kept across upgrades, see https://glpi-install.readthedocs.io/en/latest/update.html
+KEEP_ON_UPGRADE="config files marketplace plugins"
+
+console() {
+	runuser -u www-data -- /usr/bin/php "${FOLDER_GLPI}/bin/console" --no-interaction "$@"
+}
+
 ## Setup PHP
-
-# Setup PHP Ini
-echo "Setting 99-glpi.ini..."
-
-cat <<EOF >/etc/php.d/99-glpi.ini
-memory_limit = 64M ;
-file_uploads = on ;
-max_execution_time = 600 ;
-register_globals = off ;
-magic_quotes_sybase = off ;
-session.auto_start = off ;
-session.use_trans_sid = 0 ;
-EOF
-
-cat <<EOF >/etc/php.d/99-apcu.ini
-apc.enable_cli = 1 ;
-EOF
-
-#Controle du choix de version ou prise de la latest
-[[ ! "$VERSION_GLPI" ]] &&
-	VERSION_GLPI=$(curl -s https://api.github.com/repos/glpi-project/glpi/releases/latest | grep tag_name | cut -d '"' -f 4)
-
 if [[ -z "${TIMEZONE}" ]]; then
 	echo "TIMEZONE is unset"
 else
@@ -37,65 +27,39 @@ else
 	echo "date.timezone = \"$TIMEZONE\"" >/etc/php/8.3/cli/conf.d/timezone.ini
 fi
 
-#Enable session.cookie_httponly
-sed -i 's,session.cookie_httponly = *\(on\|off\|true\|false\|0\|1\)\?,session.cookie_httponly = on,gi' /etc/php/8.3/apache2/php.ini
-
-FOLDER_GLPI=glpi/
-FOLDER_WEB=/var/www/html/
-
 #check if TLS_REQCERT is present
 if !(grep -q "TLS_REQCERT" /etc/ldap/ldap.conf); then
 	echo "TLS_REQCERT isn't present"
 	echo -e "TLS_REQCERT\tnever" >>/etc/ldap/ldap.conf
 fi
 
-#Téléchargement et extraction des sources de GLPI
-if [ "$(ls ${FOLDER_WEB}${FOLDER_GLPI}/bin)" ]; then
-	echo "GLPI is already installed"
-else
-	SRC_GLPI=$(curl -s https://api.github.com/repos/glpi-project/glpi/releases/tags/${VERSION_GLPI} | jq .assets[0].browser_download_url | tr -d \")
-	TAR_GLPI=$(basename ${SRC_GLPI})
+## Deploy the bundled GLPI release into the volume
+BUNDLED_VERSION=$(ls "${FOLDER_SRC}/version")
+INSTALLED_VERSION=$(ls "${FOLDER_GLPI}/version" 2>/dev/null || true)
+mkdir -p "${FOLDER_GLPI}"
 
-	wget -P ${FOLDER_WEB} ${SRC_GLPI}
-	tar -xzf ${FOLDER_WEB}${TAR_GLPI} -C ${FOLDER_WEB}
-	rm -Rf ${FOLDER_WEB}${TAR_GLPI}
-	chown -R www-data:www-data ${FOLDER_WEB}${FOLDER_GLPI}
+if [[ -z "${INSTALLED_VERSION}" ]]; then
+	echo "Deploying GLPI ${BUNDLED_VERSION}"
+	cp -a "${FOLDER_SRC}/." "${FOLDER_GLPI}/"
+elif [[ "${INSTALLED_VERSION}" == "${BUNDLED_VERSION}" ]]; then
+	echo "GLPI ${INSTALLED_VERSION} is already deployed"
+elif [[ "$(printf '%s\n' "${INSTALLED_VERSION}" "${BUNDLED_VERSION}" | sort -V | tail -n 1)" == "${BUNDLED_VERSION}" ]]; then
+	echo "Upgrading GLPI ${INSTALLED_VERSION} to ${BUNDLED_VERSION}"
+	for entry in "${FOLDER_GLPI}"/* "${FOLDER_GLPI}"/.[!.]*; do
+		[[ -e "${entry}" ]] || continue
+		[[ " ${KEEP_ON_UPGRADE} " == *" $(basename "${entry}") "* ]] && continue
+		rm -rf "${entry}"
+	done
+	cp -a "${FOLDER_SRC}/." "${FOLDER_GLPI}/"
+else
+	echo "GLPI ${INSTALLED_VERSION} in the volume is newer than ${BUNDLED_VERSION} in the image; downgrade is not supported" >&2
+	exit 1
 fi
+chown -R www-data:www-data "${FOLDER_GLPI}"
 
-#Adapt the Apache server according to the version of GLPI installed
-## Extract local version installed
-LOCAL_GLPI_VERSION=$(ls ${FOLDER_WEB}/${FOLDER_GLPI}/version)
-## Extract major version number
-LOCAL_GLPI_MAJOR_VERSION=$(echo $LOCAL_GLPI_VERSION | cut -d. -f1)
-## Remove dots from version string
-LOCAL_GLPI_VERSION_NUM=${LOCAL_GLPI_VERSION//./}
-
-## Target value is GLPI 1.0.7
-TARGET_GLPI_VERSION="10.0.7"
-TARGET_GLPI_VERSION_NUM=${TARGET_GLPI_VERSION//./}
-TARGET_GLPI_MAJOR_VERSION=$(echo $TARGET_GLPI_VERSION | cut -d. -f1)
-
-# Compare the numeric value of the version number to the target number
-
-if [[ $LOCAL_GLPI_VERSION_NUM -lt $TARGET_GLPI_VERSION_NUM || $LOCAL_GLPI_MAJOR_VERSION -lt $TARGET_GLPI_MAJOR_VERSION ]]; then
-	# Config for GLPI < 10
-	echo -e "<VirtualHost *:80>
-    DocumentRoot /var/www/html/glpi
-
-    <Directory /var/www/html/glpi>
-        AllowOverride All
-        Order Allow,Deny
-        Allow from all
-    </Directory>
-
-    ErrorLog /var/log/apache2/error-glpi.log
-    LogLevel warn
-    CustomLog /var/log/apache2/access-glpi.log combined
-</VirtualHost>" >/etc/apache2/sites-available/000-default.conf
-else
-	# Config for GLPI >= 10
-	set +H
-	echo -e "<VirtualHost *:80>
+#Adapt the Apache server to GLPI >= 10 (document root is public/)
+set +H
+echo -e "<VirtualHost *:80>
     DocumentRoot /var/www/html/glpi/public
 
     <Directory /var/www/html/glpi/public>
@@ -116,35 +80,31 @@ else
     LogLevel warn
     CustomLog /var/log/apache2/access-glpi.log combined
 </VirtualHost>" >/etc/apache2/sites-available/000-default.conf
+
+## Database: install once, afterwards only update.
+# Never run "database:install --force" on an existing instance: it recreates
+# all glpi_* tables (data loss) and replaces the encryption key.
+if [[ ! -f "${FOLDER_GLPI}/config/config_db.php" ]]; then
+	console glpi:database:install \
+		--db-host="${MARIADB_DB_HOST}" \
+		--db-port="${MARIADB_DB_PORT}" \
+		--db-name="${MARIADB_DB_NAME}" \
+		--db-user="${MARIADB_DB_USER}" \
+		--db-password="${MARIADB_DB_PASSWORD}"
+else
+	console glpi:database:update
 fi
 
-chown -R www-data:www-data /var/www/html/glpi/
-chmod -R u+rwx /var/www/html/glpi/
+# Enable time zones (needs read access to the mysql time zone tables; optional)
+console database:enable_timezones || echo "Time zones not enabled, see the message above"
 
-/usr/bin/php /var/www/html/glpi/bin/console glpi:database:install \
-	--reconfigure \
-	--no-interaction \
-	--force \
-	--db-host=${MARIADB_DB_HOST} \
-	--db-port=${MARIADB_DB_PORT} \
-	--db-name=${MARIADB_DB_NAME} \
-	--db-user=${MARIADB_DB_USER} \
-	--db-password=${MARIADB_DB_PASSWORD} \
-	--allow-superuser
-
-# Enable time zones
-/usr/bin/php /var/www/html/glpi/bin/console migration:timestamps --allow-superuser
-/usr/bin/php /var/www/html/glpi/bin/console database:enable_timezones --allow-superuser
 #Add scheduled task by cron and enable
 echo "*/2 * * * * www-data /usr/bin/php /var/www/html/glpi/front/cron.php &>/dev/null" >/etc/cron.d/glpi
 #Start cron service
 service cron start
 
 #Activation du module rewrite d'apache
-a2enmod rewrite && service apache2 restart && service apache2 stop
-
-#Fix to really stop apache
-pkill -9 apache
+a2enmod rewrite
 
 #Lancement du service apache au premier plan
-/usr/sbin/apache2ctl -D FOREGROUND
+exec /usr/sbin/apache2ctl -D FOREGROUND
