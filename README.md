@@ -204,3 +204,18 @@ Modify this settings
 environment:
      TIMEZONE=Europe/Brussels
 ```
+
+## GLPI version and upgrades
+
+The image ships one GLPI release (see `GLPI_VERSION` in the `Dockerfile`,
+verified by its SHA-256 checksum). At start the container copies it into the
+volume `/var/www/html/glpi`:
+
+- empty volume: GLPI is copied and the database is installed once;
+- older GLPI in the volume: the code is replaced (`config`, `files`,
+  `marketplace` and `plugins` are kept) and `glpi:database:update` runs;
+- same version: only `glpi:database:update` runs (no-op when up to date);
+- newer GLPI in the volume: the container refuses to start (no downgrade).
+
+`VERSION_GLPI` is ignored. Back up the database and the volume before
+switching to a newer image.
