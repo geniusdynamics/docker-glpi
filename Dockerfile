@@ -1,5 +1,5 @@
 #On choisit une debian
-FROM debian:12.15
+FROM debian:13.7
 
 LABEL org.opencontainers.image.authors="github@genius.ke"
 
